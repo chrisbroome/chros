@@ -9,18 +9,16 @@ start:
 	mov ax, 07C0h		; Set data segment to where we're loaded
 	mov ds, ax
 
-
-	mov si, text_string	; Put string position into SI
-	call print_string	; Call our string-printing routine
-
+	mov bx, 0007h		; used when writing characters.  page = 0, color = 7
+	mov cx, 0001h		; used when writing characters.  only output 1 character at a time
 .read_character:
 	mov ah, 00h		; read a character from the keyboard
 	int 16h			; call the keyboard communication routine
+                                ; ah contains the scancode, al contains the character
+.write_charcter_to_screen:
+	mov ah, 09h		; will be calling function 09h, put a character to the screen
+	int 10h			; call the video interrupt
 	jmp .read_character	; instead of using CPU cycles at idle, wait for keyboard input
-
-
-	text_string db 'This is my cool new OS!', 0
-
 
 print_string:			; Routine: output string in SI to screen
 	mov ah, 0Eh		; int 10h 'print char' function
@@ -34,15 +32,6 @@ print_string:			; Routine: output string in SI to screen
 
 .done:
 	ret
-
-keyboard_isr:
-	cli			; clear hardware interrupts
-	
-	mov si, text_string	; Put string position into SI
-	call print_string	; Call our string-printing routine
-	iret			; return from interrupt handler
-
-	keybaord_string db 'You pressed a key', 0
 
 	times 510-($-$$) db 0	; Pad remainder of boot sector with 0s
 	dw 0xAA55		; The standard PC boot signature
