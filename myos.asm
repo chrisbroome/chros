@@ -13,7 +13,10 @@ start:
 	mov si, text_string	; Put string position into SI
 	call print_string	; Call our string-printing routine
 
-	jmp $			; Jump here - infinite loop!
+.read_character:
+	mov ah, 00h		; read a character from the keyboard
+	int 16h			; call the keyboard communication routine
+	jmp .read_character	; instead of using CPU cycles at idle, wait for keyboard input
 
 
 	text_string db 'This is my cool new OS!', 0
@@ -32,6 +35,14 @@ print_string:			; Routine: output string in SI to screen
 .done:
 	ret
 
+keyboard_isr:
+	cli			; clear hardware interrupts
+	
+	mov si, text_string	; Put string position into SI
+	call print_string	; Call our string-printing routine
+	iret			; return from interrupt handler
+
+	keybaord_string db 'You pressed a key', 0
 
 	times 510-($-$$) db 0	; Pad remainder of boot sector with 0s
 	dw 0xAA55		; The standard PC boot signature

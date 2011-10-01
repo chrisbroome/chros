@@ -1,2 +1,5 @@
 # ignore myos.bin
 myos.bin
+
+# ignore .swp files
+*.swp
