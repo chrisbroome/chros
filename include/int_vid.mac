@@ -1,0 +1,9 @@
+%ifndef INT_VID_MAC
+%define INT_VID_MAC
+
+%define INT_VID 10h
+
+%define INT_VID_PUT_CHAR   09h
+%define INT_VID_PUT_STRING 0Eh
+
+%endif

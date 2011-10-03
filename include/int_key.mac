@@ -1,0 +1,16 @@
+%ifndef INT_KEY_MAC
+%define INT_KEY_MAC
+
+%define INT_KEY				16h
+
+%define INT_KEY_READ_KEY		00h
+%define INT_KEY_GET_STATUS		01h 
+%define INT_KEY_GET_SHIFT_STATUS	02h
+%define INT_KEY_SET_TYPOMATIC_RATE	03h
+%define INT_KEY_CLICK_ADJUSTMENT	04h
+%define INT_KEY_BUFFER_WRITE		05h
+%define INT_KEY_READ_KEY_ENH		10h
+%define INT_KEY_GET_STATUS_ENH		11h
+%define INT_KEY_GET_SHIFT_ENH		12h
+
+%endif
