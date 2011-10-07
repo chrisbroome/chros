@@ -1,26 +1,16 @@
 %ifndef INT_KEY_MAC
 %define INT_KEY_MAC
 
-%define INT_KEY				16h
+%define INT_KEY				0x16
 
-%define INT_KEY_READ_KEY		00h
-%define INT_KEY_GET_STATUS		01h 
-%define INT_KEY_GET_SHIFT_STATUS	02h
-%define INT_KEY_SET_TYPOMATIC_RATE	03h
-%define INT_KEY_CLICK_ADJUSTMENT	04h
-%define INT_KEY_BUFFER_WRITE		05h
-%define INT_KEY_READ_KEY_ENH		10h
-%define INT_KEY_GET_STATUS_ENH		11h
-%define INT_KEY_GET_SHIFT_ENH		12h
-
-
-;read_character_start:
-;	xor ax, ax		; zero out ax
-;	mov bx, 0007h		; used when writing characters.  page = 0, color = 7
-;	mov cx, 0001h		; used when writing characters.  only output 1 character at a time
-;.read_character:
-;	mov ah, INT_KEY_READ_KEY; BIOS routine to read a character from the keyboard
-;	int INT_KEY		; call the keyboard communication routine
-				; ah contains the scancode, al contains the character
+%define INT_KEY_READ_KEY		0x00
+%define INT_KEY_GET_STATUS		0x01 
+%define INT_KEY_GET_SHIFT_STATUS	0x02
+%define INT_KEY_SET_TYPOMATIC_RATE	0x03
+%define INT_KEY_CLICK_ADJUSTMENT	0x04
+%define INT_KEY_BUFFER_WRITE		0x05
+%define INT_KEY_READ_KEY_ENH		0x10
+%define INT_KEY_GET_STATUS_ENH		0x11
+%define INT_KEY_GET_SHIFT_ENH		0x12
 
 %endif

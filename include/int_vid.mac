@@ -1,9 +1,80 @@
 %ifndef INT_VID_MAC
 %define INT_VID_MAC
 
-%define INT_VID 10h
+; BIOS video interrupt
+%define INT_VID				0x10
 
-%define INT_VID_PUT_CHAR   09h
-%define INT_VID_PUT_STRING 0Eh
+; set cursor position
+%define INT_VID_SET_CURSOR_POS		0x02
+; ah = 0x02
+; bh = page number
+; dh = row
+; dl = column
+; returns nothing
+
+; set the active display page (0-7)
+%define INT_VID_SET_ACTIVE_DISPLAY_PAGE	0x05
+; ah = 0x02
+; al = page number
+; returns nothing
+
+; Write a character and attribute to the screen
+%define INT_VID_WRITE_CHAR_AND_ATTR	0x09
+; ah = 0x09
+; al = character to display
+; bh = page number (00h to number of pages - 1) (see #00010)
+;      background color in 256-color graphics modes (ET4000)
+; bl = attribute (text mode) or color (graphics mode)
+;      if bit 7 set in <256-color graphics mode, character is XOR'ed
+;      onto screen
+; cx = number of times to write character
+; Return: nothing
+; Notes:all characters are displayed, including CR, LF, and BS
+; 	replication count in CX may produce an unpredictable result in graphics
+; 	modes if it is greater than the number of positions remaining in the
+; 	current row
+; 	With PhysTechSoft's PTS ROM-DOS the BH, BL, and CX values are ignored
+; 	on entry.
+
+; WRITE CHARACTER ONLY AT CURSOR POSITION
+%define INT_VID_WRITE_CHAR		0x0a
+;	AH = 0Ah
+;	AL = character to display
+;	BH = page number (00h to number of pages - 1) (see #00010)
+;	     background color in 256-color graphics modes (ET4000)
+;	BL = attribute (PCjr, Tandy 1000 only) or color (graphics mode)
+;	     if bit 7 set in <256-color graphics mode, character is XOR'ed
+;	     onto screen
+;	CX = number of times to write character
+; Return: nothing
+; Notes:all characters are displayed, including CR, LF, and BS
+;	replication count in CX may produce an unpredictable result in graphics
+;	modes if it is greater than the number of positions remaining in the
+;	current row
+;	With PhysTechSoft's PTS ROM-DOS the BH and CX values are ignored
+;	on entry.
+
+; SET BACKGROUND/BORDER COLOR
+%define INT_VID_SET_BG_COLOR		0x0b
+;	AH = 0Bh
+;	BH = 00h
+;	BL = background/border color (border only in text modes)
+;Return: nothing
+
+; TELETYPE OUTPUT
+%define INT_VID_TTY_OUTPUT		0x0E
+;	AH = 0Eh
+;	AL = character to write
+;	BH = page number
+;	BL = foreground color (graphics modes only)
+; Return: nothing
+; Desc:	display a character on the screen, advancing the cursor and scrolling
+;	the screen as necessary
+; Notes:characters 07h (BEL), 08h (BS), 0Ah (LF), and 0Dh (CR) are interpreted
+;	and do the expected things
+;	IBM PC ROMs dated 1981/4/24 and 1981/10/19 require that BH be the same
+;	as the current active page
+; BUG:	if the write causes the screen to scroll, BP is destroyed by BIOSes
+;	for which AH=06h destroys BP
 
 %endif
