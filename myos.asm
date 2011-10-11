@@ -24,17 +24,23 @@ start:
 ; code for setting up the keyboard handler
 
 ; hook the keyboard event interrupt (key_up or key_down)
-    mov ax, word [es:(IVT_ENTRY(INT_KEYEVENT)+2)]    ; read the offset part of the address
-    mov word [old_kb_handler+2], ax ; store the offset part of the address
+    mov ax, word [es:(IVT_ENTRY(INT_KEYEVENT)+2)]   ; read the segment part of the address
+    mov word [old_kb_handler+2], ax                 ; store the segment part of the address
     call print_hex_16
     mov al, ':'
     call print_char
 
-    mov ax, word [es:(IVT_ENTRY(INT_KEYEVENT))]    ; read the offset part of the address
-    mov word [old_kb_handler], ax ; store the offset 
+    mov ax, word [es:(IVT_ENTRY(INT_KEYEVENT))]     ; read the offset part of the address
+    mov word [old_kb_handler], ax                   ; store the offset part of the address 
     call print_hex_16
     
-    sti
+    lds si, [new_kb_handler]   ; load [ds:si] with the new keyboard handler
+    mov di, IVT_ENTRY(INT_KEYEVENT) ; load [es:di] with the address of the appropriate interrupt vector
+    mov cx, 4
+    cld     ; clear the direction flag
+    rep movsb   ; move the bytes at [ds:si] to [es:di]
+    
+    sti     ; enable interrupts
 .wtf:
     hlt
     jmp .wtf
@@ -45,9 +51,15 @@ start:
     hlt            ; Halt the processor and wait for hardware interrupts
     jmp .os_loop        ; Jump back up and halt the processor again
 
-new_kb_hanlder:
-    call dword [old_kb_handler] ; call the old keyboard handler
-    call print_hex_16           ; print the scan code and character in hex
+new_kb_handler:
+    ;call dword [old_kb_handler]   ; call the old keyboard handler
+    pushf
+;    call print_hex_16           ; print the scan code and character in hex
+    push ax
+    mov al, '0'
+    call print_char
+    pop ax
+    popf
     iret                        ; return from the interrupt
 
 ; INT_VID_TTY_OUTPUT              0x0E    
