@@ -13,36 +13,52 @@
     jmp BIOS_START:0x0000+start    ; make this a far jump so that cs:ip is set to 0x07c0:0x0000+start
     ; on entry, the dl register will contain number we are booting from
 start:
-    cli                ; Clear hardware interrupts
-    xor ax, ax        ; zero out ax
-    mov es, ax        ; Set the extra segment to the start of memory
-    mov ax, BIOS_START    ; The BIOS loads code here
-    mov ds, ax        ; Set data segment to where we're loaded
-    add ax, STACK_PARAGRAPH_OFFSET ; (4096 + 512) / 16 bytes per paragraph
-    mov ss, ax        ; Set stack segment
-    mov sp, STACK_SPACE    ; Allocate stack space
+    cli                             ; Clear hardware interrupts
+    xor ax, ax                      ; zero out ax
+    mov es, ax                      ; Set the extra segment to the start of memory
+    mov ax, BIOS_START              ; The BIOS loads code here
+    mov ds, ax                      ; Set data segment to where we're loaded
+    add ax, STACK_PARAGRAPH_OFFSET  ; (4096 + 512) / 16 bytes per paragraph
+    mov ss, ax                      ; Set stack segment
+    mov sp, STACK_SPACE             ; Allocate stack space
 ; code for setting up the keyboard handler
 
 ; hook the keyboard event interrupt (key_up or key_down)
     mov ax, word [es:(IVT_ENTRY(INT_KEYEVENT)+2)]   ; read the segment part of the address
     mov word [old_kb_handler+2], ax                 ; store the segment part of the address
-    call print_hex_16
-    mov al, ':'
-    call print_char
+    call print_hex_16                               ; 
+    mov al, ':'                                     ; 
+    call print_char                                 ; 
 
     mov ax, word [es:(IVT_ENTRY(INT_KEYEVENT))]     ; read the offset part of the address
     mov word [old_kb_handler], ax                   ; store the offset part of the address 
-    call print_hex_16
+    call print_hex_16                               ; 
     
-    lds si, [new_kb_handler]   ; load [ds:si] with the new keyboard handler
-    mov di, IVT_ENTRY(INT_KEYEVENT) ; load [es:di] with the address of the appropriate interrupt vector
-    mov cx, 4
-    cld     ; clear the direction flag
-    rep movsb   ; move the bytes at [ds:si] to [es:di]
+    lds si, [new_kb_handler]                        ; load [ds:si] with the new keyboard handler
+    mov di, IVT_ENTRY(INT_KEYEVENT)                 ; load [es:di] with the address of the appropriate interrupt vector
+    mov cx, 4                                       ; we'll be copying 4 bytes
+    cld                                             ; clear the direction flag
+    rep movsb                                       ; move the bytes at [ds:si] to [es:di]
     
-    sti     ; enable interrupts
+    call print_newline
+        
+    call reset_mouse  ;
+    call print_hex_16 ;
+
+    call print_newline
+    
+    mov ax, bx          ; number of mouse buttons
+    call print_hex_16   ;
+    
+    call show_mouse     ; show the mouse
+    
+    xor ax, ax          ; set ax = 0
+    sti                                             ; enable interrupts
 .wtf:
     hlt
+    call print_regs
+    call print_newline
+    inc ax
     jmp .wtf
 
     sti            ; Reenable hardware interrupts
@@ -74,6 +90,17 @@ print_char:
     mov bx, 0x0007
     int INT_VID
     pop bx
+    pop ax
+    ret
+    
+; puts the cursor on a newline
+print_newline:
+    push ax
+    mov ah, INT_VID_TTY_OUTPUT
+    mov al, 0x0a    ; CR
+    int INT_VID
+    mov al, 0x0d    ; LF
+    int INT_VID
     pop ax
     ret
 
@@ -108,6 +135,42 @@ print_hex_16:
     pop cx
     pop bx
     pop ax
+    ret
+
+; print all registers
+print_regs:
+    pusha               ; push all registers onto the stack in the following order: ax, cx, dx, bx, sp, bp, si, di
+    call print_hex_16
+    mov ax, bx
+    call print_hex_16
+    mov ax, cx
+    call print_hex_16
+    mov ax, dx
+    call print_hex_16
+    mov ax, sp
+    call print_hex_16
+    mov ax, bp
+    call print_hex_16
+    mov ax, si
+    call print_hex_16
+    mov ax, di
+    call print_hex_16
+    popa
+    ret
+
+; resets the mouse (call before calling any other mouse routine)
+; returns ax = 0 if mouse is installed, -1 (0xffff) otherwise
+;         bx = number of buttons
+reset_mouse:
+    mov ax, 0x0000
+    int 0x33
+    ret
+
+; shows the mouse cursor
+; returns nothing
+show_mouse:
+    mov ax, 0x0001
+    int 0x33
     ret
 
 old_kb_handler:         dd  0       ; far pointer used to store the original keyboard handler
