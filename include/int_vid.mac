@@ -4,6 +4,14 @@
 ; BIOS video interrupt
 %define INT_VID				0x10
 
+; set video mode
+%define INT_VID_SET_VIDEO_MODE      0x00
+; al = video mode
+; returns: al = video status
+
+%define VIDEO_MODE_TEXT_80x25       0x03
+%define VIDEO_MODE_VGA_320x200      0x13
+
 ; set cursor position
 %define INT_VID_SET_CURSOR_POS		0x02
 ; ah = 0x02
