@@ -4,3 +4,4 @@
 # ignore .swp files
 *.swp
 *~
+*.kate-swp
