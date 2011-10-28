@@ -5,3 +5,6 @@
 *.swp
 *~
 *.kate-swp
+
+# ignore log files
+*.log
