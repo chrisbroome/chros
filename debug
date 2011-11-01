@@ -1,9 +1,13 @@
 #!/bin/bash
-qemu -s -S -fda ./myos.bin -boot a &
-sleep 1
-gdb --eval-command="target remote localhost:1234" \
-    --eval-command="set architecture i8086" \
-    --eval-command="set disassembly-flavor intel" \
-    --eval-command="break *0x7c00" \
-    --eval-command="continue" \
-    --eval-command="display/10i \$eip"
+# qemu debugging commands
+#qemu -s -S -fda ./myos.bin -boot a &
+#sleep 1
+#gdb --eval-command="target remote localhost:1234" \
+#    --eval-command="set architecture i8086" \
+#    --eval-command="set disassembly-flavor intel" \
+#    --eval-command="break *0x7c00" \
+#    --eval-command="continue" \
+#    --eval-command="display/10i \$eip"
+
+# bochs debugging commands
+bochs -rc ./bochsdbgrc
