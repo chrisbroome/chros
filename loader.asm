@@ -26,9 +26,30 @@
 ; # of hard disk drives detected         0475    byte
 ; last keyboard LED/Shift key state      0497    byte
 
-FREE_RAM_START = 0x500
-STACK_TOP      = 0x1000
-STACK_SIZE     = STACK_TOP - FREE_RAM_START
+BIOS_FLAT_ADDR_START  = 0x7c00
+FREE_RAM_START        = 0x500
+STACK_TOP             = 0x1000
+STACK_SIZE            = STACK_TOP - FREE_RAM_START
+INT_BIOS_DISK         = 0x13
+INT_BIOS_VIDEO        = 0x10
+
+BYTES_PER_SECTOR      = 512
+SECTORS_PER_TRACK     = 18
+HEAD_TO_READ          = 0   ; We're always going to read head 0 while booting
+DRIVE_TO_READ         = 0   ; Read drive 0 (we're using a floppy)
+
+; We'll be loading our 2nd stage loader here. This yields 0x6c00 
+; (0x7c00 - 0x1000) contiguous bytes of space for our 2nd stage loader.
+; This means we can read 0x0036 (0x6c00 / 0x0200) sectors from disk to
+; contiguous RAM.  However, because floppy disk tracks only have 18
+; (decimal) sectors per track, we have to divide our reads into sub-reads
+; for each track.  Luckily, 0x0036 / 0x0012 gives exactly 3 tracks, so this
+; works for our current choice of start address.  This would have to be
+; adjusted if we were to load to a different address.
+SECOND_STAGE_LOAD_FLAT_ADDR = STACK_TOP
+CONTIGUOUS_SECOND_STAGE_RAM = BIOS_FLAT_ADDR_START - SECOND_STAGE_LOAD_FLAT_ADDR
+TOTAL_SECTORS_TO_READ       = CONTIGUOUS_SECOND_STAGE_RAM / BYTES_PER_SECTOR
+NUMBER_OF_TRACKS_TO_READ    = TOTAL_SECTORS_TO_READ / SECTORS_PER_TRACK
 
 use16
 
@@ -87,6 +108,13 @@ actual_loader_main:
   push loading_message ; parameter for puts
   call puts            ; put the string to the console
 
+; reset the floppy controller in preparation for loading 2nd stage bootloader
+reset_floppy:
+  xor ax, ax        ; zero out ax
+  mov dl, 0         ; dl = drive to reset
+  int INT_BIOS_DISK ; bios disk access interrupt
+  jc reset_floppy   ; if carry was set, there was an error, so try it again
+
 os_loop:
   hlt                 ; halt the processor (just process interrupts)
   jmp os_loop         ; after interrupt is processed, halt again
@@ -109,7 +137,7 @@ label string_addr at bp+4
   cmp al, 0       ; if al == 0
   je .done        ; goto .done
                   ; else
-  int 0x10        ; call the BIOS video interrupt to output the character
+  int INT_BIOS_VIDEO  ; call the BIOS video interrupt to output the character
   jmp .loop       ; loop again
 .done:
   popf
@@ -120,6 +148,7 @@ label string_addr at bp+4
 
 ; null terminated strings
 loading_message db 'Loading myos...', 0
+; disk_read_error db 'Disk read error...', 0x0a, 0x0d, 0
 ; 
 boot_device db 0         ; will store the device that we booted from
 
