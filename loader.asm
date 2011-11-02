@@ -32,12 +32,35 @@ STACK_SIZE     = STACK_TOP - FREE_RAM_START
 
 use16
 
-  jmp far 0x07c0:main ; The BIOS loads code at physical address 0x7c00.
-                      ; By using a far jump and specifying the segment
-                      ; and offset, we are effectively setting cs to
-                      ; 0x7c0 and ip to 0.  We can use this cs value
-                      ; to align other segment registers.
-main:
+  jmp far 0x07c0:loader_main ; The BIOS loads code at physical address 0x7c00.
+                             ; By using a far jump and specifying the segment
+                             ; and offset, we are effectively setting cs to
+                             ; 0x7c0 and ip to 0.  We can use this cs value
+                             ; to align other segment registers.
+
+; OEM BIOS Parameter Block (Fat 12)
+bytes_per_sector      dw 512
+sectors_per_cluster   db 1
+reserved_sectors      dw 1
+numbers_of_FATs       db 2
+root_entries          dw 224
+small_sectors         dw 2880
+media_descriptor      db 0xf0
+sectors_per_FAT       dw 9
+sectors_per_track     dw 18
+header_per_cylinder   dw 2
+hidden_sectors        dd 0
+large_sectors         dd 0
+
+; Extended BIOS Parameter Block
+physical_drive_number db 0x00
+current_head          db 0
+ext_boot_signiture    db 0x29
+volume_serial         dd 0
+volume_label          db "BOOT FLOPPY"
+file_system_id        db "FAT12   "
+
+loader_main:
   cli                    ; Clear all interrupts for initialization
   mov ax, cs             ; Initialize other segments to be the same as cs
   mov ds, ax             ; ds = cs
