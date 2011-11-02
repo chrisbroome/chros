@@ -32,11 +32,13 @@ STACK_SIZE     = STACK_TOP - FREE_RAM_START
 
 use16
 
-  jmp far 0x07c0:loader_main ; The BIOS loads code at physical address 0x7c00.
-                             ; By using a far jump and specifying the segment
-                             ; and offset, we are effectively setting cs to
-                             ; 0x7c0 and ip to 0.  We can use this cs value
-                             ; to align other segment registers.
+  jmp near loader_main ; this is a near jump so that it only takes up 3 bytes
+                       ; and leaves 8 bytes for the OEM identifier
+
+; the name of the operating system
+oem_string            db "My OS   " ; must be exactly 8 bytes
+
+; the bios parameter block starts at offset 0x000b
 
 ; OEM BIOS Parameter Block (Fat 12)
 bytes_per_sector      dw 512
@@ -61,6 +63,13 @@ volume_label          db "BOOT FLOPPY"
 file_system_id        db "FAT12   "
 
 loader_main:
+  jmp far 0x07c0:actual_loader_main
+                             ; The BIOS loads code at physical address 0x7c00.
+                             ; By using a far jump and specifying the segment
+                             ; and offset, we are effectively setting cs to
+                             ; 0x7c0 and ip to 0.  We can use this cs value
+                             ; to align other segment registers.
+actual_loader_main:
   cli                    ; Clear all interrupts for initialization
   mov ax, cs             ; Initialize other segments to be the same as cs
   mov ds, ax             ; ds = cs
