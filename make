@@ -1,3 +1,4 @@
-nasm -f bin -o myos.bin myos.asm
-nasm -f bin -o fat12.bin fat12.asm
+#!/bin/bash
 fasm loader.asm
+fasm init.asm
+cat loader.bin init.bin > os.bin

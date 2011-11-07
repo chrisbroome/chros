@@ -1,3 +1,5 @@
+; Copyright 2011 Christopher Broome
+
 ; First 1 MB of memory (addresses in hex)
 ; Description                      Start End
 ; -------------------------------- ----- -----
@@ -13,19 +15,13 @@
 ; BIOS Data                        00400 004ff
 ; Real Mode Interrupt Vector Table 00000 003ff
 
-; Special BIOS Data Addresses
-; Description                            address size
-; -------------------------------------- ------- ----
-; IO port for COM1 serial                0400    word
-; IO port for LPT1 parallel              0408    word
-; EBDA base address >> 4 (usually!)      040E    word
-; packed bit flags for detected hardware 0410    word
-; Display Mode                           0449    byte
-; base IO port for video                 0463    2 bytes, taken as a word
-; # of IRQ0 timer ticks since boot       046C    word
-; # of hard disk drives detected         0475    byte
-; last keyboard LED/Shift key state      0497    byte
+; OS Specific Values               Start End
+; -------------------------------- ----- -----
+; 2nd Stage Bootloader             07e00 80000
+; Boot Sector (Same as above)      07c00 07dff
+; Our stack                        00500 00fff
 
+OS_FLAT_ADDR_START = 0x7e00
 BIOS_FLAT_ADDR_START  = 0x7c00
 FREE_RAM_START        = 0x500
 STACK_TOP             = 0x1000
@@ -37,19 +33,6 @@ BYTES_PER_SECTOR      = 512
 SECTORS_PER_TRACK     = 18
 HEAD_TO_READ          = 0   ; We're always going to read head 0 while booting
 DRIVE_TO_READ         = 0   ; Read drive 0 (we're using a floppy)
-
-; We'll be loading our 2nd stage loader here. This yields 0x6c00 
-; (0x7c00 - 0x1000) contiguous bytes of space for our 2nd stage loader.
-; This means we can read 0x0036 (0x6c00 / 0x0200) sectors from disk to
-; contiguous RAM.  However, because floppy disk tracks only have 18
-; (decimal) sectors per track, we have to divide our reads into sub-reads
-; for each track.  Luckily, 0x0036 / 0x0012 gives exactly 3 tracks, so this
-; works for our current choice of start address.  This would have to be
-; adjusted if we were to load to a different address.
-SECOND_STAGE_LOAD_FLAT_ADDR = STACK_TOP
-CONTIGUOUS_SECOND_STAGE_RAM = BIOS_FLAT_ADDR_START - SECOND_STAGE_LOAD_FLAT_ADDR
-TOTAL_SECTORS_TO_READ       = CONTIGUOUS_SECOND_STAGE_RAM / BYTES_PER_SECTOR
-NUMBER_OF_TRACKS_TO_READ    = TOTAL_SECTORS_TO_READ / SECTORS_PER_TRACK
 
 use16
 
@@ -94,7 +77,6 @@ actual_loader_main:
   cli                    ; Clear all interrupts for initialization
   mov ax, cs             ; Initialize other segments to be the same as cs
   mov ds, ax             ; ds = cs
-  mov es, ax             ; es = cs
   mov ax, FREE_RAM_START ; Set up our stack
   mov ss, ax             ; Stack segment starts at FREE_RAM_START to
                          ; ensure that [ss:sp] never points to a used
@@ -103,24 +85,54 @@ actual_loader_main:
   mov [boot_device], dl  ; On boot, dl contains the device number that
                          ; we are booting from (see table for details)
 
-  sti                  ; Reenable interrupts for normal processing
+  mov ax, 0x800  ; the segment where we'll load our 2nd stage
+  mov es, ax     ; es = 0x800
+                 ; we'll be loading data to physical address 0x8000
+  xor bx, bx     ; set bx = 0, data is read to es:bx
 
-  push loading_message ; parameter for puts
-  call puts            ; put the string to the console
+  mov si, 3      ; we'll try reading data 3 times before giving up
 
-; reset the floppy controller in preparation for loading 2nd stage bootloader
-reset_floppy:
-  xor ax, ax        ; zero out ax
-  mov dl, 0         ; dl = drive to reset
-  int INT_BIOS_DISK ; bios disk access interrupt
-  jc reset_floppy   ; if carry was set, there was an error, so try it again
+; reset the disk controller in preparation for loading 2nd stage bootloader
+reset_disk_controller:
+  mov cx, 5             ; retry read 5 times
+.reset_loop:
+  xor ax, ax            ; zero out ax
+  mov dl, [boot_device] ; dl = drive to reset
+  int INT_BIOS_DISK     ; bios disk access interrupt
+  dec cx                ; carry flag not altered
+  jcxz .fatal           ; unable to reset drive
+  jc .reset_loop        ; if carry was set, there was an error, so try it again
+  jmp read_os_sectors   ; otherwise, we're reset
+.fatal:
+  push disk_reset_error ; let the user know we couldn't reset the controller
+  call puts             ; put the string to the screen
+  jmp os_loop           ; unable to reset disk controller.  jump to halt loop
+
+; reads the first sectors_per_track sectors into memory at 0x8000
+read_os_sectors:
+  dec si        ; si contains the number of times we've tried to read
+  cmp si, 0     ; if si == 0
+  je .fatal     ; bail out
+  mov ah, 0x02  ; function to read sector(s) into memory
+  mov al, sectors_per_track ; read 18 sectors at a time: 18*512=9216 bytes per read
+  mov ch, 0     ; low 8 bits of cylinder number: 0
+  mov cl, 2     ; high 2 bits of cylinder (bits 6-7): 0, sector 2 (bits 0-5)
+  mov dh, 0     ; reading from head 0 (first head)
+                ; read from the boot device
+  mov dl, [boot_device]
+
+  int INT_BIOS_DISK ; call the BIOS routine to read data
+  jc reset_disk_controller ; failed to read.  reset controller and try again
+  jmp 0x0800:0   ; otherwise, jump to our 2nd stage loader
+.fatal:
+  push disk_read_error ; print a message indicating that we couldn't read
+  call puts            ; 
 
 os_loop:
+  cli                 ; clear interrupts
   hlt                 ; halt the processor (just process interrupts)
   jmp os_loop         ; after interrupt is processed, halt again
 
-; outputs a null terminated string to the console
-; si contains a pointer to the string
 puts:
 label string_addr at bp+4
   enter 0, 0      ; set up a stack frame
@@ -146,10 +158,9 @@ label string_addr at bp+4
   leave           ; restore bp
   ret 2           ; pop parameters ourselves
 
-; null terminated strings
-loading_message db 'Loading myos...', 0
-; disk_read_error db 'Disk read error...', 0x0a, 0x0d, 0
-; 
+disk_reset_error db 'Disk reset error', 0
+disk_read_error  db 'Disk read error', 0
+
 boot_device db 0         ; will store the device that we booted from
 
 times 510-$ db 0         ; 0 pading to make the size exactly 512 bytes
