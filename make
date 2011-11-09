@@ -1,4 +1,4 @@
 #!/bin/bash
-fasm loader.asm
-fasm init.asm
+fasm loader.fasm
+fasm init.fasm
 cat loader.bin init.bin > os.bin

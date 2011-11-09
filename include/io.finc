@@ -1,0 +1,97 @@
+; Copyright 2011 Christopher Broome
+
+INT_VID = 0x10
+INT_VID_TTY_OUTPUT = 0x0E
+
+macro _print_char b {
+  mov al, b
+  call print_char
+}
+
+; INT_VID_TTY_OUTPUT              0x0E    
+;       AH = 0Eh
+;       AL = character to write
+;       BH = page number
+;       BL = foreground color (graphics modes only)
+print_char:
+  pusha
+    mov ah, INT_VID_TTY_OUTPUT
+    mov bx, 0x0007
+    int INT_VID
+  popa
+  ret
+    
+; puts the cursor on a newline
+print_newline:
+  pusha
+    mov bx, 0x0007
+    mov ah, INT_VID_TTY_OUTPUT
+    mov al, 0x0a    ; CR
+    int INT_VID
+    mov al, 0x0d    ; LF
+    int INT_VID
+  popa
+  ret
+
+; ax = number to write to the screen
+print_hex_16:
+  pusha
+    mov bx, 0x0007
+    mov cx, 0x0010 ; shift amount (must be a multiple of 4)
+    mov dx, 0xf000 ; mask
+.while_cx_not_zero:
+    push ax
+      sub cl, 4   ; subtract 4 from cl on each pass
+      and ax, dx  ; mask out the appropriate digit
+      shr ax, cl  ; shift ax right cl times
+.correct_digit:
+      add al, '0'                 ; correct digit for display
+      cmp al, '9'                 ; is digit a number?
+      jle .output                 ; digit is a number
+      add al, 'a'-('9' + 1)       ; digit is a letter
+.output:
+      mov ah, INT_VID_TTY_OUTPUT  ; output the character
+      int INT_VID                 ; print the digit
+    pop ax                 ; restore ax
+    shr dx, 4              ; shift the mask right 4 times
+    jcxz .end              ; exit if cx == 0
+    jmp .while_cx_not_zero ; otherwise, do another iteration
+.end:
+  popa
+  ret
+
+; prints a dword ptr variable to the screen formatted as ffff:ffff
+; ds is implicitly the segment
+; parameters: [bp+4] dword pointer offset
+;             [bp+6] dword pointer segment
+print_dword_ptr:
+  enter 0, 0
+  pusha
+    mov ax, [bp+6] ; segment part of the address
+    call print_hex_16 ; print the segment 
+    _print_char ':'
+    mov ax, [bp+4] ; offset part of the address
+    call print_hex_16 ; print the offset
+  popa
+  ret
+
+; prints the null (0) terminated string at ds:[bp+4]
+; note that ds is implicitly assumed to be correct
+; parameters: [bp+4] word offset of string value to print
+print_string:
+  enter 0, 0 ; set up a stack frame
+    pusha ; save all registers
+      pushf ; save the flags register
+        mov si, [bp+4] ; offset of string
+        cld ; clear the direction flag so that we're looping forwards
+.loop:
+        lodsb ; load al with the value of the string
+        cmp al, 0
+        je .done
+        call print_char ; print the character in al
+        jmp .loop
+.done:
+      popf ;
+    popa
+  leave
+  ret 2
