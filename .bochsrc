@@ -5,7 +5,7 @@ vgaromimage: file="/usr/local/share/bochs/VGABIOS-lgpl-latest"
 floppya: type=1_44, 1_44="./os.bin", status=inserted, write_protected=0
 boot: floppy
 clock: sync=none, time0=local
-log: ./myos.log
+log: ./os.log
 logprefix: %t%e%d
 panic: action=ask
 error: action=report

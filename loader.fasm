@@ -85,6 +85,9 @@ actual_loader_main:
   mov [boot_device], dl  ; On boot, dl contains the device number that
                          ; we are booting from (see table for details)
 
+;  mov ax, 0x0010     ; set the video mode to 0x10
+;  int INT_BIOS_VIDEO ; so we can output color messages
+
   mov ax, 0x800  ; the segment where we'll load our 2nd stage
   mov es, ax     ; es = 0x800
                  ; we'll be loading data to physical address 0x8000
