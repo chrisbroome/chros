@@ -1,0 +1,37 @@
+; Copyright 2011 Christopher Broome
+if ~ defined PORTS_FINC
+define PORTS_FINC
+
+macro outportb port, b {
+  if b eq
+  else
+    mov al, b
+  end if
+  out port, al
+}
+
+macro outportw port, w {
+  if w eq
+  else
+    mov ax, w
+  end if
+  out port, ax
+}
+
+macro inportb port, b {
+  in al, port
+  if b eq
+  else
+    mov b, al
+  end if
+}
+
+macro inportw port, w {
+  in ax, port
+  if w eq
+  else
+    mov w, ax
+  end if
+}
+
+end if ; ~ defined PORTS_FINC

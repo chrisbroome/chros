@@ -1,7 +1,8 @@
 ; Copyright 2011 Christopher Broome
+if ~ defined IO_FINC
+define IO_FINC
 
-INT_VID = 0x10
-INT_VID_TTY_OUTPUT = 0x0E
+include "int_vid.finc"
 
 macro _print_char b {
   mov al, b
@@ -95,3 +96,4 @@ print_string:
     popa
   leave
   ret 2
+end if ; ~ defined IO_FINC

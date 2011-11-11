@@ -1,19 +1,16 @@
-%ifndef INT_VID_MAC
-%define INT_VID_MAC
+if ~ defined INT_VID_FINC
+define INT_VID_FINC
 
 ; BIOS video interrupt
-%define INT_VID				0x10
+INT_VID = 0x10
 
-; set video mode
-%define INT_VID_SET_VIDEO_MODE      0x00
+; BIOS function to set video mode
+INT_VID_SET_VIDEO_MODE = 0x00
 ; al = video mode
 ; returns: al = video status
 
-%define VIDEO_MODE_TEXT_80x25       0x03
-%define VIDEO_MODE_VGA_320x200      0x13
-
 ; set cursor position
-%define INT_VID_SET_CURSOR_POS		0x02
+INT_VID_SET_CURSOR_POS = 0x02
 ; ah = 0x02
 ; bh = page number
 ; dh = row
@@ -21,13 +18,13 @@
 ; returns nothing
 
 ; set the active display page (0-7)
-%define INT_VID_SET_ACTIVE_DISPLAY_PAGE	0x05
+INT_VID_SET_ACTIVE_DISPLAY_PAGE = 0x05
 ; ah = 0x02
 ; al = page number
 ; returns nothing
 
 ; Write a character and attribute to the screen
-%define INT_VID_WRITE_CHAR_AND_ATTR	0x09
+INT_VID_WRITE_CHAR_AND_ATTR = 0x09
 ; ah = 0x09
 ; al = character to display
 ; bh = page number (00h to number of pages - 1) (see #00010)
@@ -45,7 +42,7 @@
 ; 	on entry.
 
 ; WRITE CHARACTER ONLY AT CURSOR POSITION
-%define INT_VID_WRITE_CHAR		0x0a
+INT_VID_WRITE_CHAR = 0x0a
 ;	AH = 0Ah
 ;	AL = character to display
 ;	BH = page number (00h to number of pages - 1) (see #00010)
@@ -63,14 +60,14 @@
 ;	on entry.
 
 ; SET BACKGROUND/BORDER COLOR
-%define INT_VID_SET_BG_COLOR		0x0b
+INT_VID_SET_BG_COLOR = 0x0b
 ;	AH = 0Bh
 ;	BH = 00h
 ;	BL = background/border color (border only in text modes)
 ;Return: nothing
 
 ; TELETYPE OUTPUT
-%define INT_VID_TTY_OUTPUT		0x0E
+INT_VID_TTY_OUTPUT = 0x0E
 ;	AH = 0Eh
 ;	AL = character to write
 ;	BH = page number
@@ -85,4 +82,8 @@
 ; BUG:	if the write causes the screen to scroll, BP is destroyed by BIOSes
 ;	for which AH=06h destroys BP
 
-%endif
+
+BIOS_VIDEO_MODE_TEXT_80x25  = 0x03
+BIOS_VIDEO_MODE_VGA_320x200 = 0x13
+
+end if ; ~ defined INT_VID_FINC

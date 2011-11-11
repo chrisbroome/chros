@@ -32,9 +32,9 @@ KBCMD_ENABLE_A20        = 0xdd
 KBCMD_DISABLE_A20       = 0xdf
 
 ; our loader loads us at physical address 0x8000
-START_LINEAR_ADDRESS         = 0x8000
+START_LINEAR_ADDRESS  = 0x8000
 VRAM_LINEAR_ADDRESS   = 0xb8000
-VRAM_SEGMENT_ADDRESS  = VRAM_ADDRESS >> 4
+VRAM_SEGMENT_ADDRESS  = VRAM_LINEAR_ADDRESS / 16
 
 org 0 ; offset to 0, we will set segments later
 use16 ; we are still in real mode here, but we'll switch later
@@ -42,37 +42,7 @@ use16 ; we are still in real mode here, but we'll switch later
 ; this should go above any other includes or assembly code
   jmp main   ; jump to the main program
 
-macro outportb port, b {
-  if b eq
-  else
-    mov al, b
-  end if
-  out port, al
-}
-
-macro outportw port, w {
-  if w eq
-  else
-    mov ax, w
-  end if
-  out port, ax
-}
-
-macro inportb port, b {
-  in al, port
-  if b eq
-  else
-    mov b, al
-  end if
-}
-
-macro inportw port, w {
-  in ax, port
-  if w eq
-  else
-    mov w, ax
-  end if
-}
+include "include/ports.finc"
 
 ; this gets the a20 address line status comparing the word at 0x00000 with the word at 0x100000
 ; if a20 is enabled, then changing one value does not affect the other

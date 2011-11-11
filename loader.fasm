@@ -34,6 +34,8 @@ SECTORS_PER_TRACK     = 18
 HEAD_TO_READ          = 0   ; We're always going to read head 0 while booting
 DRIVE_TO_READ         = 0   ; Read drive 0 (we're using a floppy)
 
+include "include/mbr.finc"
+
 use16
 
   jmp near loader_main ; this is a near jump so that it only takes up 3 bytes
