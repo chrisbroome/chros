@@ -1,16 +1,18 @@
-if ~ defined INT_VID_FINC
-define INT_VID_FINC
+; Copyright 2011 Christopher Broome
+match x, BIOS_INT_VID_FINC
+{
+define BIOS_INT_VID_FINC
 
 ; BIOS video interrupt
-INT_VID = 0x10
+BIOS_INT_VID = 0x10
 
 ; BIOS function to set video mode
-INT_VID_SET_VIDEO_MODE = 0x00
+BIOS_INT_VID_SET_VIDEO_MODE = 0x00
 ; al = video mode
 ; returns: al = video status
 
 ; set cursor position
-INT_VID_SET_CURSOR_POS = 0x02
+BIOS_INT_VID_SET_CURSOR_POS = 0x02
 ; ah = 0x02
 ; bh = page number
 ; dh = row
@@ -18,13 +20,13 @@ INT_VID_SET_CURSOR_POS = 0x02
 ; returns nothing
 
 ; set the active display page (0-7)
-INT_VID_SET_ACTIVE_DISPLAY_PAGE = 0x05
+BIOS_INT_VID_SET_ACTIVE_DISPLAY_PAGE = 0x05
 ; ah = 0x02
 ; al = page number
 ; returns nothing
 
 ; Write a character and attribute to the screen
-INT_VID_WRITE_CHAR_AND_ATTR = 0x09
+BIOS_INT_VID_WRITE_CHAR_AND_ATTR = 0x09
 ; ah = 0x09
 ; al = character to display
 ; bh = page number (00h to number of pages - 1) (see #00010)
@@ -42,7 +44,7 @@ INT_VID_WRITE_CHAR_AND_ATTR = 0x09
 ; 	on entry.
 
 ; WRITE CHARACTER ONLY AT CURSOR POSITION
-INT_VID_WRITE_CHAR = 0x0a
+BIOS_INT_VID_WRITE_CHAR = 0x0a
 ;	AH = 0Ah
 ;	AL = character to display
 ;	BH = page number (00h to number of pages - 1) (see #00010)
@@ -60,14 +62,14 @@ INT_VID_WRITE_CHAR = 0x0a
 ;	on entry.
 
 ; SET BACKGROUND/BORDER COLOR
-INT_VID_SET_BG_COLOR = 0x0b
+BIOS_INT_VID_SET_BG_COLOR = 0x0b
 ;	AH = 0Bh
 ;	BH = 00h
 ;	BL = background/border color (border only in text modes)
 ;Return: nothing
 
 ; TELETYPE OUTPUT
-INT_VID_TTY_OUTPUT = 0x0E
+BIOS_INT_VID_TTY_OUTPUT = 0x0E
 ;	AH = 0Eh
 ;	AL = character to write
 ;	BH = page number
@@ -86,4 +88,4 @@ INT_VID_TTY_OUTPUT = 0x0E
 BIOS_VIDEO_MODE_TEXT_80x25  = 0x03
 BIOS_VIDEO_MODE_VGA_320x200 = 0x13
 
-end if ; ~ defined INT_VID_FINC
+}

@@ -21,25 +21,28 @@
 ; Boot Sector (Same as above)      07c00 07dff
 ; Our stack                        00500 00fff
 
-OS_FLAT_ADDR_START = 0x7e00
-BIOS_FLAT_ADDR_START  = 0x7c00
-FREE_RAM_START        = 0x500
-STACK_TOP             = 0x1000
-STACK_SIZE            = STACK_TOP - FREE_RAM_START
-INT_BIOS_DISK         = 0x13
-INT_BIOS_VIDEO        = 0x10
+OS_FLAT_ADDR_START   = 0x7e00
+BIOS_FLAT_ADDR_START = 0x7c00
+FREE_RAM_START       = 0x500
+STACK_TOP            = 0x1000
+STACK_SIZE           = STACK_TOP - FREE_RAM_START
+INT_BIOS_DISK        = 0x13
+; INT_BIOS_VIDEO       = 0x10
 
 BYTES_PER_SECTOR      = 512
 SECTORS_PER_TRACK     = 18
 HEAD_TO_READ          = 0   ; We're always going to read head 0 while booting
 DRIVE_TO_READ         = 0   ; Read drive 0 (we're using a floppy)
 
-include "include/mbr.finc"
-
 use16
 
+; since this is the first instruction, any includes (which shouldn't have much 
+; code) should go AFTER this jump.  Otherwise included code will be executed
+; before this jump
   jmp near loader_main ; this is a near jump so that it only takes up 3 bytes
                        ; and leaves 8 bytes for the OEM identifier
+include "include/mbr.finc"
+include "include/bios/bios_int_vid.finc"
 
 ; the name of the operating system
 oem_string            db "My OS   " ; must be exactly 8 bytes
@@ -89,6 +92,15 @@ actual_loader_main:
 
 ;  mov ax, 0x0010     ; set the video mode to 0x10
 ;  int INT_BIOS_VIDEO ; so we can output color messages
+  push word msg.boot_device
+  call puts
+
+  mov dh, 0x00  ; 0 out dh
+  push dx       ;
+  call puthex16 ; print the number of the boot device
+
+  push word msg.crlf
+  call puts
 
   mov ax, 0x800  ; the segment where we'll load our 2nd stage
   mov es, ax     ; es = 0x800
@@ -109,7 +121,7 @@ reset_disk_controller:
   jc .reset_loop        ; if carry was set, there was an error, so try it again
   jmp read_os_sectors   ; otherwise, we're reset
 .fatal:
-  push disk_reset_error ; let the user know we couldn't reset the controller
+  push msg.disk_reset_error ; let the user know we couldn't reset the controller
   call puts             ; put the string to the screen
   jmp os_loop           ; unable to reset disk controller.  jump to halt loop
 
@@ -130,7 +142,7 @@ read_os_sectors:
   jc reset_disk_controller ; failed to read.  reset controller and try again
   jmp 0x0800:0   ; otherwise, jump to our 2nd stage loader
 .fatal:
-  push disk_read_error ; print a message indicating that we couldn't read
+  push msg.disk_read_error ; print a message indicating that we couldn't read
   call puts            ; 
 
 os_loop:
@@ -138,35 +150,71 @@ os_loop:
   hlt                 ; halt the processor (just process interrupts)
   jmp os_loop         ; after interrupt is processed, halt again
 
-puts:
-label string_addr at bp+4
-  enter 0, 0      ; set up a stack frame
-  push bx
-  push si
-  pushf
-  mov ah, 0x0e    ; BIOS function to output a character
-  mov bx, 0x0007  ; 0 page, 7 attribute (normal text color)
-  mov si, [string_addr] ; move the address to si
-  cld
-.loop:
-  lodsb           ; load al with the byte at [ds:si]
-                  ; and increment si
-  cmp al, 0       ; if al == 0
-  je .done        ; goto .done
-                  ; else
-  int INT_BIOS_VIDEO  ; call the BIOS video interrupt to output the character
-  jmp .loop       ; loop again
-.done:
-  popf
-  pop si
-  pop bx
-  leave           ; restore bp
-  ret 2           ; pop parameters ourselves
+;include "include/bios/bios_io.finc"
 
-disk_reset_error db 'Disk reset error', 0
-disk_read_error  db 'Disk read error', 0
+; ax = number to write to the screen
+puthex16:
+label mem16 at bp+4
+  pusha
+    mov bx, hex_chars
+    mov cx, 0x0010  ; shift amount (must be a multiple of 4)
+    mov dx, 0xf000  ; mask
+    mov ax, [mem16] ; 
+.while_cx_not_zero:
+    push ax
+      sub cl, 4   ; subtract 4 from cl on each pass
+      and ax, dx  ; mask out the appropriate digit
+      shr ax, cl  ; shift ax right cl times
+      xlatb       ; al = [ds:bx][al]
+                  ; loads the correct hex digit for the nibble
+      push bx
+      mov bx, 0x0007              ; normal output
+      mov ah, BIOS_INT_VID_TTY_OUTPUT  ; output the character (al)
+      int BIOS_INT_VID            ; print the digit
+      pop bx
+    pop ax                 ; restore ax
+    shr dx, 4              ; shift the mask right 4 times
+    jcxz .end              ; exit if cx == 0
+    jmp .while_cx_not_zero ; otherwise, do another iteration
+.end:
+  popa
+  ret 2
+
+; prints the null (0) terminated string at ds:[bp+4]
+; note that ds is implicitly assumed to be correct
+; parameters: [bp+4] word offset of string value to print
+puts:
+label str_msg at bp+4
+  enter 0, 0 ; set up a stack frame
+    pusha ; save all registers
+      pushf ; save the flags register
+        mov bx, 0x0007    ; normal output
+        mov ah, BIOS_INT_VID_TTY_OUTPUT  ; output the character (al)
+        mov si, [str_msg] ; offset of string
+        cld ; clear the direction flag so that we're looping forwards
+      .loop:
+        lodsb ; load al with the value of the string
+        cmp al, 0
+        je .done
+        int BIOS_INT_VID  ; print the digit
+        jmp .loop
+      .done:
+      popf ;
+    popa
+  leave
+  ret 2
+
+CR = 0xd
+LF = 0xa
+
+msg:
+.disk_reset_error db 'Disk reset error', CR, LF, 0
+.disk_read_error  db 'Disk read error', CR, LF, 0
+.boot_device      db 'Boot device number: ', 0
+.crlf             db CR, LF, 0
 
 boot_device db 0         ; will store the device that we booted from
+hex_chars   db '0123456789abcdef' ; hexadecimal characters
 
 times 510-$ db 0         ; 0 pading to make the size exactly 512 bytes
 boot_signiture dw 0xaa55 ; boot signiture

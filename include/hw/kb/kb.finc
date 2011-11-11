@@ -1,0 +1,28 @@
+; Copyright 2011 Christopher Broome
+match x, HW_KB_KB_FINC
+{
+define HW_KB_KB_FINC
+
+; 8043 Keyboard Controller Port Mapping
+PORT_IN_KBD_READ_INPUT_BUFFER    = 0x60
+PORT_OUT_KBD_WRITE_OUTPUT_BUFFER = 0x60
+PORT_IN_KBD_READ_STATUS_REGISTER = 0x64
+PORT_OUT_KBD_SEND_COMMAND        = 0x64
+
+; Keyboard status register bits
+KSR_OUTPUT_BUFFER_STATUS         = 0x01 ; 0: buffer empty, do not read.  1: buffer full, ok to read
+KSR_INPUT_BUFFER_STATUS          = 0x02 ; 0: buffer empty, ok to write.  1: buffer full, do not write
+KSR_SYSTEM_FLAG                  = 0x04 ; 0: After power on reset.  1: After successfull completion of the keyboard controllers self-test
+KSR_COMMAND_DATA                 = 0x08 ; 0: Last write was data (via port 0x60).  1: last write was a command (via port 0x64)
+KSR_KEYBOARD_UNLOCKED            = 0x10 ; 0: Locked, 1: Not Locked
+KSR_AUXILIARY_OUTPUT_BUFFER_FULL = 0x20 ; AT: 0: OK Flag.  1: Timeout on transmission from keyboard controller to keyboard.  Could indicate no keyboard present.
+KSR_TIMEOUT                      = 0x40 ; 0: OK flag.  1: Timeout.  PS/2 General Timeout.  AT: Timeout on transsmission from keyboard to keyboard controller.  Possibly parity error (in which case bits 6 and 7 are set)
+KSR_PARITY_ERROR                 = 0x80 ; 0: OK flag, no err.  1: Parity error with last byte
+
+; Keyboard Commands
+KBCMD_READ_OUTPUT_PORT  = 0xd0
+KBCMD_WRITE_OUTPUT_PORT = 0xd1
+KBCMD_ENABLE_A20        = 0xdd
+KBCMD_DISABLE_A20       = 0xdf
+
+}
