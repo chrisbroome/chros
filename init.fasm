@@ -32,8 +32,9 @@ KBCMD_ENABLE_A20        = 0xdd
 KBCMD_DISABLE_A20       = 0xdf
 
 ; our loader loads us at physical address 0x8000
-START_ADDRESS = 0x8000
-; org START_ADDRESS 
+START_LINEAR_ADDRESS         = 0x8000
+VRAM_LINEAR_ADDRESS   = 0xb8000
+VRAM_SEGMENT_ADDRESS  = VRAM_ADDRESS >> 4
 
 org 0 ; offset to 0, we will set segments later
 use16 ; we are still in real mode here, but we'll switch later
@@ -261,7 +262,7 @@ main:
 
   ; we're now in protected mode, so we must perform a far jump to set cs to the
   ; correct code segment descriptor as we defined below
-  jmp fword 0x08:(START_ADDRESS + stage3)
+  jmp fword 0x08:(START_LINEAR_ADDRESS + stage3)
 
 ; Stage 3 of our boot loader
 ;   We're in protected mode!  Don't enable interrupts yet
@@ -273,8 +274,8 @@ use32 ; we're in 32 bit mode here
   mov es, ax
   mov esp, 0x90000  ; set up our stack to start at 0x90000
 
-  mov edi, 0xb8000  ; load the address of video ram into edi
-  mov esi, START_ADDRESS + PM_Sig ; load the signiture
+  mov edi, VRAM_LINEAR_ADDRESS ; load the address of video ram into edi
+  mov esi, START_LINEAR_ADDRESS + PM_Sig ; load the signiture
   xor ecx, ecx      ; ecx is our counter
   cld
 .print_msg:
