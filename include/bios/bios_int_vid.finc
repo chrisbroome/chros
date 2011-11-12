@@ -5,10 +5,25 @@ match x, BIOS_INT_VID_FINC {
   ; BIOS video interrupt
   BIOS_INT_VID = 0x10
 
-  ; BIOS function to set video mode
+  ; set video mode
   BIOS_INT_VID_SET_VIDEO_MODE = 0x00
   ; al = video mode
   ; returns: al = video status
+
+  BIOS_INT_VID_SET_CURSOR_SHAPE = 0x01
+  ; AH = 01
+  ; CH = cursor starting scan line (cursor top) (low order 5 bits)
+  ; CL = cursor ending scan line (cursor bottom) (low order 5 bits)
+  ; returns nothing
+  ; - cursor scan lines are zero based
+  ; - cursor size can also be set via the 6845 CRT controller
+  ; - cursor size can be determined using the CRTC,  INT 10,3  or the
+  ;   BIOS Data Area bytes 40:60 (ending scan line) and 40:61 (starting
+  ;   scan line)
+  ; - the following is a list of the cursor scan lines associated with
+  ;   most common adapters;  screen sizes over 40 lines may differ
+  ;   depending on adapters.
+  ; - use CX = 2000h to disable cursor
 
   ; set cursor position
   BIOS_INT_VID_SET_CURSOR_POS = 0x02
@@ -17,6 +32,8 @@ match x, BIOS_INT_VID_FINC {
   ; dh = row
   ; dl = column
   ; returns nothing
+
+  BIOS_INT_VID_GET_CURSOR_POS_AND_SHAPE = 0x03
 
   ; set the active display page (0-7)
   BIOS_INT_VID_SET_ACTIVE_DISPLAY_PAGE = 0x05

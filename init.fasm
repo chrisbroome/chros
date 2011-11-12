@@ -235,7 +235,22 @@ use32 ; we're in 32 bit mode here
   mov es, ax
   mov esp, 0x90000  ; set up our stack to start at 0x90000
 
-  mov edi, VRAM_LINEAR_ADDRESS + (0xa0 * 10); load the address of video ram into edi
+; Read the cursor position
+; 0x8165
+  xor eax, eax
+  xor ebx, ebx
+  xor ecx, ecx
+  mov ax, [ds:0x0450]
+  mov bl, ah
+  shl ebx, 6   ; ebx = ah * 64
+  mov cl, ah   ;
+  shl ecx, 4   ; ecx = ah * 16
+  add bx, cx   ; ebx += ecx ; bx = (ah * 64) + (ah * 16)
+  and eax, 0x000000ff ; mask out all but the lower byte
+  add ebx, eax ; ebx += al
+  shl ebx, 1   ; ebx *= 2;
+  add ebx, VRAM_LINEAR_ADDRESS ; ebx += VRAM_LINEAR_ADDRESS
+  mov edi, ebx ; load the address of video ram into edi
   mov esi, START_LINEAR_ADDRESS + PM_Sig ; load the signiture
   xor ebx, ebx      ; ebx is our array index
   cld
@@ -258,7 +273,7 @@ use32 ; we're in 32 bit mode here
 
 ; global descriptor table
 gdt_start: ; Address for the GDT
- 
+
 gdt_null: ; Null Segment
   dd 0
   dd 0
