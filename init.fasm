@@ -2,9 +2,6 @@
 
 ; init will be loaded by loader.fasm
 
-CR = 0x0d
-LF = 0x0a
-
 ; our loader loads us at physical address 0x8000
 START_LINEAR_ADDRESS  = 0x8000
 VRAM_LINEAR_ADDRESS   = 0xb8000
@@ -25,74 +22,91 @@ include "include/hw/kb/kb.finc"
 ; if a20 is disabled, they are effectively the same address because wrapping occurs
 ; the status is returned in the carry bit
 get_a20_status:
+    push ax
     push ds
     push es
-    mov ax,0x0000
-    mov bx,0xFFFF
-    mov ds,ax
-    mov es,bx
-    mov ax,[ds:0x0000]   ; ax = word at 0x0000:0x0000 (0x00000000)
-    cmp [es:0x0010],ax   ; Is it the same as the word at 0xFFFF:0x0010 (0x00100000)?
-    jne .enabled         ; no, A20 must be enabled
-    pushf                ; save the status of the flags so that we can restore them
-    cli                  ; what we're about to do will modify the interrupt vector table,
-                         ; specifically interrupt 0, if a20 is disabled
-    inc word [es:0x0010] ; Change the word at 0xFFFF:0x0010 (0x00100000)
-    ;wbinvd               ; Flush caches (normally not necessary, but done just in case) 486+ only
-    cmp [ds:0x0000],ax   ; Did the word at 0x0000:0x0000 (0x00000000) change?
-    je .disabled         ; yes, A20 must be disabled
-
-    dec word [es:0x0010] ; Restore the word at 0xFFFF:0x0010
-    popf                 ; restore the flags (possibly reenable interrupts if they were enabled beforehand)
+    push si
+    push di
+    xor ax, ax       ; ax = 0
+    mov ds, ax       ; ds = 0x0000
+    not ax           ; ax = 0xffff
+    mov es, ax       ; es = 0xffff
+    mov di, 0x0510   ; di = 0x0510
+    mov si, 0x0500   ; si = 0x0500
+    mov ax, [ds:si]  ; ax = word at 0x0000:0x0500 (0x00000500)
+    cmp [es:di], ax  ; Is it the same as the word at 0xFFFF:0x0510 (0x00100500)?
+    jne .enabled     ; If they're different, a20 is enabled
+    inc word [es:di] ; Change the word at 0xFFFF:0x0510 (0x00100500)
+    ;wbinvd          ; Flush caches (normally not necessary, but done just in case) 486+ only
+    cmp [ds:si], ax  ; Did incrementing [es:di] change [ds:si]?
+                     ; Is the word at 0x0000:0x0500 (0x00000500) changed?
+    jne .disabled    ; If so, we are experiencing wrapping, so a20 must be disabled
+    dec word [es:di] ; Restore the word at 0xFFFF:0x0510
 .enabled:
+    clc ; return cf = 0 if enabled
+    jmp .finish
+.disabled:
+    dec word [es:di] ; Restore the word at 0xFFFF:0x0510 and 0x0000:0x0510 (it's the same memory location)
+    stc ; return cf = 1 if disabled
+.finish:
+    pop di
+    pop si
     pop es
     pop ds
-    stc    ; return cf = 1 if enabled
+    pop ax
     ret
 
-.disabled:
-    dec word [es:0x0010] ; Restore the word at 0xFFFF:0x0010 and 0x0000:0x0000 (it's the same memory location)
-    popf                 ; restore the flags (possibly reenable interrupts if they were enabled beforehand)
-    pop es
-    pop ds
-    clc    ; return cf = 0 if disabled
-    ret
+fast_enable_a20:
+  inportb 0x92
+  or al, 2
+  outportb 0x92
+  ret
 
 bios_enable_a20:
   mov ax, 0x2401 ; enable a20
   int 0x15       ;
   ret
 
-kbd_wait_input:
-  inportb PORT_IN_KBD_READ_STATUS_REGISTER ; read the status register
-  test al, KSR_INPUT_BUFFER_STATUS         ; test the input buffer status
-  jnz  kbd_wait_input                      ; keep waiting until it's ok to read (0)
-  ret
-
-kbd_wait_output:
-  inportb PORT_IN_KBD_READ_STATUS_REGISTER ; read the status register
-  test al, KSR_OUTPUT_BUFFER_STATUS        ; test the output buffer status
-  jz   kbd_wait_output                    ; keep waiting until it's ok to write (1)
-  ret
-
 kbd_enable_a20:
-  ; send the read the output port command
-  outportb PORT_OUT_KBD_SEND_COMMAND, KBCMD_READ_OUTPUT_PORT
-  call kbd_wait_output              ; wait for the output buffer to be empty
-
-  ; read input buffer
-  inportb PORT_IN_KBD_READ_INPUT_BUFFER
-  push ax             ; store the value on the stack
-  call kbd_wait_input ; wait for the input buffer to clear
-
-  ; send the write output port command
-  outportb PORT_OUT_KBD_SEND_COMMAND, KBCMD_WRITE_OUTPUT_PORT
-  call kbd_wait_input 
-
-  pop ax       ; pop the old value of the keyboard status into ax
-  or  al, 0x02 ; set the A20 bit
-  outportb PORT_OUT_KBD_WRITE_OUTPUT_BUFFER ; write the value in al back to the keyboard output buffer
-  ret
+        cli
+ 
+        call    kbd_a20_wait_input
+        outportb KBD_PORT_OUT_SEND_COMMAND, KBD_CMD_DISABLE_KEYOARD
+ 
+        call    kbd_a20_wait_input
+        outportb KBD_PORT_OUT_SEND_COMMAND, KBD_CMD_READ_OUTPUT_PORT
+ 
+        call    kbd_a20_wait_output
+        inportb KBD_PORT_IN_READ_INPUT_BUFFER
+        push    ax
+ 
+        call    kbd_a20_wait_input
+        outportb KBD_PORT_OUT_SEND_COMMAND, KBD_CMD_WRITE_OUTPUT_PORT
+ 
+        call    kbd_a20_wait_input
+        pop     ax
+        or      al,2
+        outportb KBD_PORT_OUT_WRITE_OUTPUT_BUFFER
+ 
+        call    kbd_a20_wait_input
+        outportb KBD_PORT_OUT_SEND_COMMAND, KBD_CMD_ENABLE_KEYOARD
+ 
+        call    kbd_a20_wait_input
+        sti
+        ret
+ 
+kbd_a20_wait_input:
+        inportb KBD_PORT_IN_READ_STATUS_REGISTER
+        test    al, 00000010b
+        jnz     kbd_a20_wait_input
+        ret
+ 
+ 
+kbd_a20_wait_output:
+        inportb KBD_PORT_IN_READ_STATUS_REGISTER
+        test    al, 00000001b
+        jz      kbd_a20_wait_output
+        ret
 
 ; outputs a null terminated string to the console using the BIOS
 ; the first parameter is a pointer to the string
@@ -128,17 +142,9 @@ macro bios_puts_color message, color {
   call bios_puts
 }
 
-macro bios_puts_normal message {
-  bios_puts_color message, 0x0007
-}
-
-macro bios_puts_error message {
-  bios_puts_color message, 0x000c
-}
-
-macro bios_puts_good message {
-  bios_puts_color message, 0x000a
-}
+macro bios_puts_normal message { bios_puts_color message, 0x0007 }
+macro bios_puts_error  message { bios_puts_color message, 0x000c }
+macro bios_puts_good   message { bios_puts_color message, 0x000a }
 
 ; calculates the linear address of the gdt at runtime and updates the gdt_desc 
 ; appropriately so that we don't have to depend on compile time constants
@@ -170,24 +176,33 @@ main:
   bios_puts_normal sys_msgs.loading
 
   ; here we'll try several different methods of enabling A20 in the hopes that one will work
-  call get_a20_status ; gets the a20 line status. cf = 1 if enabled, 0 if disabled
-  jc  .enabled_a20     ; if carry was set, the line is disabled, so we need to enable it
+  call get_a20_status  ; gets the a20 line status. cf = 0 if enabled, 1 if disabled
+  jc   .a20_routines   ; if carry was set, the line is disabled, so we need to enable it
+  bios_puts_normal a20_msgs.enabled_by_default
+  jmp  .gdt_load
+.a20_routines:
   bios_puts_error a20_msgs.disabled
 
   bios_puts_normal a20_msgs.trying_fast
+  call fast_enable_a20
+  call get_a20_status
+  jnc .enabled_a20
+
+  bios_puts_normal a20_msgs.trying_bios
   call bios_enable_a20 ; call the bios to enable the a20 line
   call get_a20_status  ; get the status of the a20 line
-  jc  .enabled_a20      ; if carry was set, the line is disabled, so we try again
+  jnc .enabled_a20      ; if carry was set, the line is disabled, so we try again
 
   bios_puts_normal a20_msgs.trying_kbc
   call kbd_enable_a20 ; call the routine to enable the a20 line
   call get_a20_status ; get the status again
-  jc  .enabled_a20    ; if carry was set, the line is disabled and we'll fall through and halt
+  jnc .enabled_a20    ; if carry was set, the line is disabled and we'll fall through and halt
 
   bios_puts_error a20_msgs.failed_to_enable
   jmp .display_halt_msg
 .enabled_a20:
   bios_puts_good a20_msgs.enabled
+.gdt_load:
   jmp .gdt
 .display_halt_msg:
   bios_puts_error sys_msgs.halting
@@ -271,17 +286,23 @@ gdt_desc:
 .limit   dw 0 ; we'll calculate this at runtime
 .address dd 0 ; we'll calculate this at runtime
 
+; line ending (used in BIOS calls)
+CR = 0x0d
+LF = 0x0a
+
 ; null terminated strings
 sys_msgs:
 .loading          db 'Loading OS...', CR, LF, 0
 .halting          db 'Halting system', CR, LF, 0
 
 a20_msgs:
-.enabled          db 'Enabled A20', CR, LF, 0
-.disabled         db 'A20 is Disabled', CR, LF, 0
-.trying_fast      db 'Trying to enable using BIOS fast enable...', CR, LF, 0
-.trying_kbc       db 'Trying to enable using the keyboard controller...', CR, LF, 0
-.failed_to_enable db 'Failed to enable a20.', CR, LF, 0
+.enabled_by_default db 'A20 already enabled', CR, LF, 0
+.enabled            db 'Enabled A20', CR, LF, 0
+.disabled           db 'A20 is Disabled', CR, LF, 0
+.trying_fast        db 'Trying fast enable...', CR, LF, 0
+.trying_bios        db 'Trying BIOS enable...', CR, LF, 0
+.trying_kbc         db 'Trying keyboard controller...', CR, LF, 0
+.failed_to_enable   db 'Failed to enable a20.', CR, LF, 0
 
 PM_Sig: db 'Protected Mode!', 0
 

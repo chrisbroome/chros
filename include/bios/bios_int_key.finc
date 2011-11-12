@@ -1,22 +1,21 @@
 ; Copyright 2011 Christopher Broome
-match x, BIOS_INT_KEY_FINC
-{
-define BIOS_INT_KEY_FINC
+match x, BIOS_INT_KEY_FINC {
+  define BIOS_INT_KEY_FINC
 
-; BIOS Keyboard interrupt
-BIOS_INT_KEY =                    0x16
+  ; BIOS Keyboard interrupt
+  BIOS_INT_KEY =                    0x16
 
-; BIOS Keyboard event interrupt
-BIOS_INT_KEYEVENT =               0x09
+  ; BIOS Keyboard event interrupt
+  BIOS_INT_KEYEVENT =               0x09
 
-BIOS_INT_KEY_READ_KEY =           0x00
-BIOS_INT_KEY_GET_STATUS =         0x01 
-BIOS_INT_KEY_GET_SHIFT_STATUS =   0x02
-BIOS_INT_KEY_SET_TYPOMATIC_RATE = 0x03
-BIOS_INT_KEY_CLICK_ADJUSTMENT =   0x04
-BIOS_INT_KEY_BUFFER_WRITE =       0x05
-BIOS_INT_KEY_READ_KEY_ENH =       0x10
-BIOS_INT_KEY_GET_STATUS_ENH =     0x11
-BIOS_INT_KEY_GET_SHIFT_ENH =      0x12
+  BIOS_INT_KEY_READ_KEY =           0x00
+  BIOS_INT_KEY_GET_STATUS =         0x01 
+  BIOS_INT_KEY_GET_SHIFT_STATUS =   0x02
+  BIOS_INT_KEY_SET_TYPOMATIC_RATE = 0x03
+  BIOS_INT_KEY_CLICK_ADJUSTMENT =   0x04
+  BIOS_INT_KEY_BUFFER_WRITE =       0x05
+  BIOS_INT_KEY_READ_KEY_ENH =       0x10
+  BIOS_INT_KEY_GET_STATUS_ENH =     0x11
+  BIOS_INT_KEY_GET_SHIFT_ENH =      0x12
 
 }
