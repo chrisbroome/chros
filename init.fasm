@@ -235,17 +235,17 @@ use32 ; we're in 32 bit mode here
   mov es, ax
   mov esp, 0x90000  ; set up our stack to start at 0x90000
 
-  mov edi, VRAM_LINEAR_ADDRESS ; load the address of video ram into edi
+  mov edi, VRAM_LINEAR_ADDRESS + (0xa0 * 10); load the address of video ram into edi
   mov esi, START_LINEAR_ADDRESS + PM_Sig ; load the signiture
-  xor ecx, ecx      ; ecx is our counter
+  xor ebx, ebx      ; ebx is our array index
   cld
 .print_msg:
   lodsb             ; load a byte from ds:esi into al and increment esi
   cmp al, 0 ; are we done?
   je .done
-  mov byte [edi + ecx * 2], al
-  mov byte [edi + ecx * 2 + 1], 0x1b
-  inc ecx
+  mov byte [edi + ebx * 2], al
+  mov byte [edi + ebx * 2 + 1], 0x1a
+  inc ebx
   jmp .print_msg
 
 .done:
@@ -285,6 +285,14 @@ gdt_end: ; Used to calculate the size of the GDT
 gdt_desc:
 .limit   dw 0 ; we'll calculate this at runtime
 .address dd 0 ; we'll calculate this at runtime
+
+
+idt:
+.start:
+.end:
+.desc:
+limit   dw 0
+address dd 0
 
 ; line ending (used in BIOS calls)
 CR = 0x0d
