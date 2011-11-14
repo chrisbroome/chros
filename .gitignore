@@ -1,5 +1,6 @@
-# ignore .bin files
-*.bin
+# ignore output directories
+obj/
+bin/
 
 # ignore .swp files
 *.swp

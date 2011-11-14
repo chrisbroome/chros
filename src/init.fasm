@@ -240,7 +240,9 @@ use32 ; we're in 32 bit mode here
   xor eax, eax
   xor ebx, ebx
   xor ecx, ecx
-  mov ax, [ds:0x0450]
+  mov ax, [ds:0x0450] ; this byte stores the cursor position in ax: ah = row, al = column
+  mov [CurrentVideoMode.x], ah ; store the cursor position in our variable
+  mov [CurrentVideoMode.y], al ; after this point, we'll use this variable (instead of the BIOS variable)
   mov bl, ah
   shl ebx, 6   ; ebx = ah * 64
   mov cl, ah   ;
@@ -270,6 +272,13 @@ use32 ; we're in 32 bit mode here
   cli     ; clear all interrupts and halt the processor
   hlt     ; halt the system
   jmp .haltloop
+
+
+GetCurrentVideoInfo:
+  enter 0, 0
+    
+  leave
+  ret
 
 ; global descriptor table
 gdt_start: ; Address for the GDT
@@ -328,5 +337,16 @@ a20_msgs:
 .failed_to_enable   db 'Failed to enable a20.', CR, LF, 0
 
 PM_Sig: db 'Protected Mode!', 0
+
+; Current color text video mode attributes
+; text mode cursor values
+struc VideoMode x, y, rows, cols {
+  .x db x
+  .y db y
+  .rows db rows
+  .cols db cols
+}
+
+CurrentVideoMode VideoMode 0, 0, 0, 0
 
 times (18*512)-($-$$) db 0
