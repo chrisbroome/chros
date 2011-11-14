@@ -9,3 +9,8 @@ bin/
 
 # ignore log files
 *.log
+
+# autoconf stuff
+autom4te.cache/
+config.status
+makefile

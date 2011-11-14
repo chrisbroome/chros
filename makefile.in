@@ -3,7 +3,7 @@ srcdir = src
 bindir = bin
 asm = fasm
 sources = loader.fasm init.fasm
-objects = ${addprefix ${objdir}/, ${sources:.fasm=}}
+objects = ${addprefix ${objdir}/, ${sources:.fasm=.bin}}
 executable = os.bin
 
 all: ${executable}
@@ -11,7 +11,10 @@ all: ${executable}
 clean:
 	-@rm ${objdir}/* ${bindir}/${executable}
 
-${objects}: ${addprefix ${srcdir}/, ${sources}}
+${objdir}/loader.bin: ${srcdir}/loader.fasm
+	${asm} $< $@
+
+${objdir}/init.bin: ${srcdir}/init.fasm
 	${asm} $< $@
 
 ${executable}: ${objects}
