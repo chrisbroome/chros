@@ -1,6 +1,8 @@
 # ignore output directories
 obj/
 bin/
+src/loader.bin
+src/init.bin
 
 # ignore .swp files
 *.swp
@@ -12,5 +14,14 @@ bin/
 
 # autoconf stuff
 autom4te.cache/
+aclocal.m4
 config.status
-makefile
+config.h
+config.h.in
+config.log
+config.status
+Makefile
+Makefile.in
+src/Makefile
+src/Makefile.in
+stamp-h1

@@ -9,7 +9,7 @@ AM_INIT_AUTOMAKE
 
 # Checks for programs.
 AX_PROG_FASM
-
+AC_PROG_CC([gcc])
 # Checks for libraries.
 
 # Checks for header files.
@@ -17,7 +17,7 @@ AX_PROG_FASM
 # Checks for typedefs, structures, and compiler characteristics.
 
 # Checks for library functions.
-
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
+AC_CONFIG_HEADERS([config.h])
 AC_OUTPUT
