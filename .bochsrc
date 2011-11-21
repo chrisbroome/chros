@@ -2,7 +2,7 @@
 #memory: host=32, guest=32
 romimage: file="/usr/local/share/bochs/BIOS-bochs-latest"
 vgaromimage: file="/usr/local/share/bochs/VGABIOS-lgpl-latest"
-floppya: type=1_44, 1_44="./bin/os.bin", status=inserted, write_protected=0
+floppya: type=1_44, 1_44="./bin/os", status=inserted, write_protected=0
 boot: floppy
 clock: sync=none, time0=local
 log: ./os.log

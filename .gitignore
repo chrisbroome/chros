@@ -3,6 +3,10 @@ obj/
 bin/
 src/loader.bin
 src/init.bin
+.deps/
+
+# object files
+*.o
 
 # ignore .swp files
 *.swp
