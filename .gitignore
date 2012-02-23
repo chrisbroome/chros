@@ -15,17 +15,3 @@ src/init.bin
 
 # ignore log files
 *.log
-
-# autoconf stuff
-autom4te.cache/
-aclocal.m4
-config.status
-config.h
-config.h.in
-config.log
-config.status
-Makefile
-Makefile.in
-src/Makefile
-src/Makefile.in
-stamp-h1
