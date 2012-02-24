@@ -1,0 +1,6 @@
+The following files were taken directory from the grub archive at
+ftp://alpha.gnu.org/gnu/grub/grub-0.97-i386-pc.tar.gz :
+
+src/stage1
+src/stage2
+

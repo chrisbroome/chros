@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # bochs debugging commands
-bochs -q -rc ./.bochsdbgrc
+bochs -q -f ./.bochsdbgrc

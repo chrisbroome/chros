@@ -3,6 +3,9 @@ obj/
 bin/
 src/loader.bin
 src/init.bin
+src/kernel.bin
+src/pad
+src/baseimage
 .deps/
 
 # object files

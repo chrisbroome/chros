@@ -1,4 +1,3 @@
-
 SUBMAKE = $(MAKE) $(MFLAGS)
 
 all: kmain
@@ -9,4 +8,7 @@ kmain:
 clean:
 	-cd src; $(SUBMAKE) clean
 
-.PHONY: all clean
+run-qemu: src/kernel.bin
+	-qemu -kernel src/kernel.bin
+
+.PHONY: all run-qemu clean

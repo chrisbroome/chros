@@ -1,0 +1,29 @@
+You must build a gcc cross compiler in order to build this project.  You can
+basicaly follow the directions at osdev.org and get up to speed.
+
+Once your cross compiler is built, you need to export 2 varibles:
+
+export PATH=$PATH:/path/to/your/cross/compiler/bin
+export CROSS_COMPILE=target-exectuable-format-with-trailing-hyphen-
+
+For example, my executable format is i586-elf and my cross compiler toolchain
+is located at /usr/share/cross/bin, so these are my environment settings:
+
+export PATH=$PATH:/usr/share/cross/bin
+export CROSS_COMPILE=i586-elf-
+
+DON'T FORGET THE TRAILING HYPHEN (dash)!!!  The makefiles aren't very robust,
+so the hyphen is needed.
+
+You'll also want to grab the latest copy of the Flat Assembler, FASM, from
+http://flatassembler.net and either install it to one of the system bin paths
+or its path to your 'export PATH' line above.
+
+Another thing you'll need is either Bochs or Qemu.  I had this working in Bochs
+at one point, but as of right now this is broken.  The easiest way to run the
+kernel (if you want to call it that), is by using Qemu.  From the project root,
+simply type the following, assuming everything built correctly:
+
+qemu -kernel src/kernel.bin
+
+You should see a "passed" message in green text.  If not, something went wrong.
