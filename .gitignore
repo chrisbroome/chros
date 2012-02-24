@@ -8,6 +8,9 @@ src/pad
 src/baseimage
 .deps/
 
+# ignore build environment file
+.env
+
 # object files
 *.o
 

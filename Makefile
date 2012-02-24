@@ -8,7 +8,10 @@ kmain:
 clean:
 	-cd src; $(SUBMAKE) clean
 
-run-qemu: src/kernel.bin
+qk: src/kernel.bin
 	-qemu -kernel src/kernel.bin
+
+qfd: src/baseimage
+	-qemu -fda src/baseimage
 
 .PHONY: all run-qemu clean

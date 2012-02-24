@@ -26,4 +26,19 @@ simply type the following, assuming everything built correctly:
 
 qemu -kernel src/kernel.bin
 
-You should see a "passed" message in green text.  If not, something went wrong.
+You should see some text messages in different colors appear indicating that
+the kernel was successfully loaded, passed the multiboot check, and exited.
+
+Alternatively, you can type this:
+
+qemu -fda src/baseimage
+
+Then at the grub prompt type the following:
+
+kernel 200+25
+boot
+
+This will boot the image using grub instead of qemu's built in loader.
+
+The root makefile's 'qk' and 'qfd' targets perform the above commands, with the
+exception of the grub input section.
