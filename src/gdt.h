@@ -1,11 +1,7 @@
 #ifndef GDT_H
 #define GDT_H
 
-struct gdt_entry {
-
-};
-
-struct gdt_list {
-};
+void gdt_init();
+void gdt_reinit();
 
 #endif

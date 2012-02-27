@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef INTTYPES_H
+#define INTTYPES_H
 // must include stdint.h
 #include "stdint.h"
 

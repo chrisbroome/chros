@@ -1,86 +1,73 @@
-#include "inttypes.h"
-#include "gdt.h"
+#include "kmain.h"
 
-const uint32_t MULTIBOOT_MAGIC = 0x2badb002;
-const char* LOADED = "loaded";
-const char* FAILED = "failed";
-const char* PASSED = "passed";
-const char* EXITING = "exiting";
-uint8_t* videoram = (uint8_t*)0xb8000;
+VGA_COLOR _color_good    = VGA_COLOR_FG_GREEN | VGA_COLOR_FG_INTENSE;
+VGA_COLOR _color_bad     = VGA_COLOR_FG_RED | VGA_COLOR_FG_INTENSE;
+VGA_COLOR _color_neutral = VGA_COLOR_FG_BLUE | VGA_COLOR_FG_INTENSE;
+VGA_COLOR _color_default = VGA_COLOR_FG_GRAY;
 
-typedef enum VGA_COLOR
+// declare a global cursor
+cursor_t _c;
+
+void out_vid( const char* msg, VGA_COLOR col )
 {
-  VGA_COLOR_FG_BLACK   = 0x00,
-  VGA_COLOR_FG_BLUE    = 0x01,
-  VGA_COLOR_FG_GREEN   = 0x02,
-  VGA_COLOR_FG_RED     = 0x04,
-  VGA_COLOR_FG_INTENSE = 0x08,
-  VGA_COLOR_BG_BLACK   = 0x00,
-  VGA_COLOR_BG_BLUE    = 0x10,
-  VGA_COLOR_BG_GREEN   = 0x20,
-  VGA_COLOR_BG_RED     = 0x40,
-  VGA_COLOR_BG_INTENSE = 0x80
-} VGA_COLOR;
-
-typedef struct cursor {
-  int x;
-  int y;
-} cursor_t;
-
-void cursor_init( cursor_t* c )
-{
-  c->x = 0;
-  c->y = 0;
+  vga_out_line( msg, &_c, col );
 }
 
-void out_video_line( uint8_t* dest, const char* src, unsigned int length, cursor_t* cursor, VGA_COLOR color )
+void do_exit()
 {
-  for( unsigned int i = 0; i < length; ++i )
+  //
+  for( uint8_t i=0; i < 16; ++i )
   {
-    unsigned int cursor_offset = cursor->y * 80 * 2 + cursor->x;
-    unsigned int dest_offset = (i*2) + cursor_offset;
-    dest[dest_offset] = src[i];
-    dest[dest_offset + 1] = color;
+    out_vid( "exiting kernel", i );
   }
-  cursor->y++;
 }
 
-int kmain( void *mbd, uint32_t magic )
+void do_multiboot_check( mb_header* mbh, uint32_t magic )
 {
-  // declare a cursor
-  cursor_t c;
-
-  // initialize the cursor
-  cursor_init( &c );
-
-  // get a pointer to the cursor
-  cursor_t* cursor = &c;
-
-  // write a message out to videoram indicating that we loaded
-  out_video_line( videoram, LOADED, 6, cursor, VGA_COLOR_FG_BLUE | VGA_COLOR_FG_INTENSE );
-
   // make sure we loaded from the multiboot loader
-  if( magic != MULTIBOOT_MAGIC )
+  if( magic != MULTIBOOT_EAX_MAGIC_NUMBER )
   {
-    // something went wrong.  we failed
-    out_video_line( videoram, FAILED, 6, cursor, VGA_COLOR_FG_RED | VGA_COLOR_FG_INTENSE );
-    //videoram[0] = 'F';
-    //videoram[1] = 0x04;
-    return -1;
+    // not loaded by multiboot
+    out_vid( "Not loaded by multiboot", _color_bad );
   }
+  else
+  {
+    const char* align = multiboot_check_flag( mbh, MULTIBOOT_MAGIC_FLAG_ALIGN ) ? "align:1" : "align:0";
+    const char* mem   = multiboot_check_flag( mbh, MULTIBOOT_MAGIC_FLAG_MEMORY ) ? "mem_info:1" : "mem_info:0";
+    const char* video = multiboot_check_flag( mbh, MULTIBOOT_MAGIC_FLAG_VIDEO_INFO ) ? "vid_info:1" : "vid_info:0";
+    // output mbd values
+    out_vid( "multiboot values", _color_good );
+    
+    out_vid( align, _color_default );
+    out_vid( mem, _color_default );
+    out_vid( video, _color_default );
+  }
+}
+
+void kmain_init()
+{
+  // initialize the cursor
+  cursor_init( &_c );
+}
+
+int kmain( mb_header *mbh, uint32_t magic )
+{
+  // initialize things
+  kmain_init();
   
+  // indicate that we loaded
+  out_vid( "loaded", _color_neutral );
+
+  // checkfor multiboot values and output messages if present
+  do_multiboot_check( mbh, magic );
+
   // we got to here.  awesome
-  out_video_line( videoram, PASSED, 6, cursor, VGA_COLOR_FG_GREEN | VGA_COLOR_FG_INTENSE );
+  out_vid( "passed", _color_good );
 
-
-  // about to exit.  might as well print a message
-  out_video_line( videoram, EXITING, 7, cursor
-                , VGA_COLOR_FG_BLUE
-                | VGA_COLOR_FG_GREEN
-                | VGA_COLOR_FG_RED
-                | VGA_COLOR_FG_INTENSE
-                | VGA_COLOR_BG_BLUE
-                | VGA_COLOR_BG_INTENSE );
+  // perform the exit routine
+  do_exit();
+  
+  // normal kernal return code
   return 0;
 }
 

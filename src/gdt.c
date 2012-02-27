@@ -8,4 +8,6 @@ struct _gdt_entry {
 struct _gdt_table {
 };
 
+void gdt_init() {}
+void gdt_reinit() {}
 

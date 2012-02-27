@@ -1,25 +1,30 @@
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)ld
+
+ASM = fasm
+
 # add -Werror in a future enhancement
 CFLAGS = -Wall -Wextra -nostdlib -fno-builtin -nostartfiles -nodefaultlibs -std=c99
 
+OBJ_FILES = loader.o kmain.o vga.o gdt.o multiboot.o string.o
+
 FLOPPY_SIZE = 1474560
 
-all: baseimage kernel.bin loader.o kmain.o gdt.o string.o
+all: fddimage
 
 fddimage: baseimage
 
 baseimage: stage1 stage2 pad kernel.bin
 	-cat $+ > $@
 
-kernel.bin: loader.o kmain.o gdt.o string.o
-	-$(LD) -T linker.ld -o kernel.bin loader.o kmain.o
+kernel.bin: $(OBJ_FILES)
+	-$(LD) -T linker.ld -o $@ $+
 
 %.o: %.c
 	-$(CC) $(CFLAGS) -c $< -o $@
 
 loader.o: loader.fasm
-	-fasm loader.fasm
+	-$(ASM) $+ $@
 
 stage1:
 
